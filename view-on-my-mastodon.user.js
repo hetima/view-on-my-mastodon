@@ -9,6 +9,11 @@
 // @match        *://*/users/*/following*
 // @match        *://*/users/*/updates/*
 // @match        *://*/settings/preferences
+// @connect      pawoo.net
+// @connect      mstdn.jp
+// @connect      friends.nico
+// @connect      mastodon.cloud
+// @connect      mastodon.social
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_xmlhttpRequest
