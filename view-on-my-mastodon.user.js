@@ -20,7 +20,7 @@
 
     function goHome(home, query, sender){
         var protocol=GM_getValue('vomh_primaryProtocol', 'https:');
-        if(sender)sender.innerText='Connecting to ' + home + '...';
+        if(sender) sender.disabled=true;
         GM_xmlhttpRequest({
             method: 'GET',
             headers: {
@@ -28,6 +28,7 @@
             },
             url: protocol + '//' + home + '/api/v1/search?q=' + encodeURIComponent(query),
             onload: function(res) {
+                if(sender) sender.disabled=false;
                 var resJson = JSON.parse(res.responseText);
                 var path=null;
                 if(resJson.accounts[0]){
@@ -45,21 +46,24 @@
                     var url=protocol + '//' + home + path;
                     window.location.href=url;
                 }else if(sender){
-                    sender.innerText='error';
+                    sender.textContent='error';
                 }
             },
             onerror: function() {
-                if(sender)sender.innerText='error';
+                if(sender){
+                    sender.textContent='error';
+                    sender.disabled=false;
+                }
             }
         });
     }
 
     function jumpButton(title, host, query){
-        var btn = document.createElement('a');
+        var btn = document.createElement('button');
+        btn.type='button';
         btn.className='button';
         btn.style.cssText='text-transform:none;';
         btn.textContent=title;
-        btn.href=query;
         btn.addEventListener('click', function(event){
             event.preventDefault();
             goHome(host, query, event.target);
@@ -86,14 +90,18 @@
     function insertControl(primaryHost, query){
         var container=document.querySelector('div.container');
         if(!container) return;
-        var card=container.querySelector('div.h-card');
+        var card=container.querySelector('div.h-feed');
+        if(!card) card=container.querySelector('div.h-card');
         if(!card) card=container.querySelector('div.h-entry');
         if(card){
             var base = document.createElement('div');
             var btn = jumpButton('View on ' + primaryHost, primaryHost, query);
             var ctl = document.createElement('div');
-            base.className='card h-card p-author';
+
+            base.className='landing-strip';
             ctl.className='controls';
+            base.style.cssText='text-align:right;';
+
             ctl.appendChild(btn);
             base.appendChild(ctl);
             
