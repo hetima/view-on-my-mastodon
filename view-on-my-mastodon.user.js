@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         View on my Mastodon
 // @namespace    http://hetima.com/
-// @version      0.2
+// @version      0.2.1
 // @description  Mastodon tool: put button that navigates to primary instance
 // @author       hetima
 // @match        *://*/@*
