@@ -2,11 +2,12 @@
 // @name         View on my Mastodon
 // @namespace    http://hetima.com/
 // @version      0.1
-// @description  Mastodon tool: replace remote follow button to view on primary instance
+// @description  Mastodon tool: put button that navigates to primary instance
 // @author       hetima
 // @match        *://*/@*
 // @match        *://*/users/*/followers*
 // @match        *://*/users/*/following*
+// @match        *://*/users/*/updates/*
 // @match        *://*/settings/preferences
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -28,9 +29,20 @@
             url: protocol + '//' + home + '/api/v1/search?q=' + encodeURIComponent(query),
             onload: function(res) {
                 var resJson = JSON.parse(res.responseText);
-                var resId = resJson.accounts[0].id;
-                if(resId!==null && isFinite(resId)){
-                    var url=protocol + '//' + home + '/web/accounts/' + resId;
+                var path=null;
+                if(resJson.accounts[0]){
+                    var resId = resJson.accounts[0].id;
+                    if(resId!==null && isFinite(resId)){
+                        path='/web/accounts/' + resId;
+                    }
+                }else if(resJson.statuses[0]){
+                    var resId = resJson.statuses[0].id;
+                    if(resId!==null && isFinite(resId)){
+                        path='/web/statuses/' + resId;
+                    }
+                }
+                if(path!==null){
+                    var url=protocol + '//' + home + path;
                     window.location.href=url;
                 }else if(sender){
                     sender.innerText='error';
@@ -42,42 +54,59 @@
         });
     }
 
-    function getRemoteFollowBtn(){
-        var btn=document.querySelector('div.remote-follow a.button');
-        if(btn===null) return null;
-
+    function jumpButton(title, host, query){
+        var btn = document.createElement('a');
+        btn.className='button';
+        btn.style.cssText='text-transform:none;';
+        btn.textContent=title;
+        btn.href=query;
+        btn.addEventListener('click', function(event){
+            event.preventDefault();
+            goHome(host, query, event.target);
+        }, false);
         return btn;
     }
 
-    function alterRemoteFollowBtn(btn, home, query){
-        btn.style.textTransform="none";
-        btn.innerText="View on " + home;
-        btn.addEventListener('click', function(event){
-            event.preventDefault();
-            goHome(home, query, event.target);
-        }, false);
-    }
-
-    function getUserName(){
+    function getQuery(){
         var paths=window.location.pathname.split( '/' );
         if (paths[1][0] == '@') {
-            return window.location.origin + '/' + paths[1];
-        }else if(paths.length==4 && paths[1]=='users' && (paths[3]=='following'||paths[3]=='followers')){
-           return window.location.origin + '/@' + paths[2];
+            var query=window.location.origin + '/' + paths[1];
+            if(paths.length==3){
+                query += '/' + paths[2];
+            }
+            return query;
+        }else if(paths.length==4 && paths[1]=='users' && (paths[3]=='following'||paths[3]=='followers'||paths[3]=='updates')){
+            return window.location.origin + '/@' + paths[2];
+        }else if(paths.length==5 && paths[1]=='users' && paths[3]=='updates'){
+            return window.location.href;
         }
         return null;
+    }
+
+    function insertControl(primaryHost, query){
+        var container=document.querySelector('div.container');
+        if(!container) return;
+        var card=container.querySelector('div.h-card');
+        if(!card) card=container.querySelector('div.h-entry');
+        if(card){
+            var base = document.createElement('div');
+            var btn = jumpButton('View on ' + primaryHost, primaryHost, query);
+            var ctl = document.createElement('div');
+            base.className='card h-card p-author';
+            ctl.className='controls';
+            ctl.appendChild(btn);
+            base.appendChild(ctl);
+            
+            card.parentElement.insertBefore(base, card);
+        }
     }
 
     function main(){
         var primaryHost=GM_getValue('vomh_primaryHost', '');
         if(primaryHost==='') return;
-        var userName=getUserName();
-        if(userName===null) return;
-
-        var remoteFollowBtn=getRemoteFollowBtn();
-        if(remoteFollowBtn){
-            alterRemoteFollowBtn(remoteFollowBtn, primaryHost, userName);
-        }
+        var query=getQuery();
+        if(query===null) return;
+        insertControl(primaryHost, query);
     }
 
     function settingPage(){
